@@ -10,11 +10,13 @@ class Chord(Scene):
         self,
         dr: float,
         dc: str,
+        ts: float,
         cr: float,
         cc: str,
         op: np.ndarray,
         opdc: str,
-        speed: float,
+        ar: float,
+        ac: str,
     ):
         # all auxiliary functions
         def go_around_circle(mob, dt):
@@ -32,11 +34,17 @@ class Chord(Scene):
             constant re-evaluation of self.offset at runtime. I would add a 3rd
             parameter to this function if I could, but...what can ya do
             """
-            nonlocal offset
-            offset += dt * speed
-            pfp = circle.point_from_proportion(offset % 1)
-            if pfp == ORIGIN:
-                pfp += UP * 0.01
+            nonlocal circ_offset
+            circ_offset += dt * ts
+            pfp = circle.point_from_proportion(circ_offset % 1)
+            if (pfp == ORIGIN).all():
+                """
+                There has to be a tiny offset to trav_dot's position whenever it
+                gets to the origin to prevent mov_line and stat_line from ever
+                being parallel so that the construction of the Angle object in
+                get_angle() doesn't crap itself
+                """
+                pfp += origin_offset
             mob.move_to(pfp)
 
         def get_mov_line():
@@ -46,21 +54,22 @@ class Chord(Scene):
             return Line(trav_dot.get_center(), ORIGIN, color=ORANGE)
 
         def get_angle():
-            # if the lines are NOT parallel to each other...
-            if (stat_line.end != mov_line.end).all():
-                return Angle(stat_line, mov_line, 1.0, color=YELLOW)
-            else:
-                temp_line = Line(op, ORIGIN + (UP * 2))
-                return Angle(stat_line, temp_line, 1.0, color=YELLOW)
+            return Angle(stat_line, mov_line, ar, color=ac)
 
         # "main" code!
         trav_dot = Dot(radius=dr, color=dc, fill_opacity=0.0)
         op_dot = Dot(radius=dr, color=opdc)
         circle = Circle(radius=cr, color=cc)
         stat_line = Line(op, ORIGIN, color=PURPLE)
-        offset = 0
+        origin_offset = UP * 0.01
+        circ_offset = 0
 
-        # move into position
+        """
+        tiny initial position offset, for same reason as explained in
+        go_around_circle(). Otherwise, the first frame can't render
+        """
+        trav_dot.move_to(ORIGIN + origin_offset)
+
         op_dot.move_to(op)
         circle.move_to(op)
 
@@ -85,5 +94,13 @@ class Chord(Scene):
 
     def construct(self):
         self.form_chord(
-            0.1, YELLOW, 3.0, RED, np.array([-3, 0, 0]), WHITE, 0.25
+            0.1,
+            YELLOW,
+            0.25,
+            3.0,
+            RED,
+            np.array([-3, 0, 0]),
+            WHITE,
+            0.5,
+            YELLOW,
         )
