@@ -111,7 +111,7 @@ class Chord(Scene):
             )
         )  # providing a start_prop might not be necessary...why not use self.circ_offset?
     
-    def spin_chord(self, ts, lool)
+    def spin_chord(self, ts,)
 
     def construct(self):
         self.form_chord(
