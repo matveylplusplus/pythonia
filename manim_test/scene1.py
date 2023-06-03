@@ -14,6 +14,7 @@ class DifferentRotations(Scene):
     def construct(self):
         left_square = Square(color=BLUE, fill_opacity=0.7).shift(3 * LEFT)
         right_square = Square(color=GREEN, fill_opacity=0.7).shift(3 * RIGHT)
+        left_square.rotate_about_origin(-(3 * PI) / 2)
         self.play(
             left_square.animate.rotate_about_origin((3 * PI) / 2),
             Rotate(right_square, angle=PI),

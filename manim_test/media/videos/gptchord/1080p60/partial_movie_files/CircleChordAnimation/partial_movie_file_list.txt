@@ -1,0 +1,7 @@
+# This file is used internally by FFMPEG.
+file 'file:C:/Users/matth/OneDrive/Desktop/Projects/Programming/python_programs/manim_test/media/videos/gptchord/1080p60/partial_movie_files/CircleChordAnimation/1413466013_440155649_223132457.mp4'
+file 'file:C:/Users/matth/OneDrive/Desktop/Projects/Programming/python_programs/manim_test/media/videos/gptchord/1080p60/partial_movie_files/CircleChordAnimation/1672018281_1193515373_3077978275.mp4'
+file 'file:C:/Users/matth/OneDrive/Desktop/Projects/Programming/python_programs/manim_test/media/videos/gptchord/1080p60/partial_movie_files/CircleChordAnimation/1672018281_2154941353_1051161406.mp4'
+file 'file:C:/Users/matth/OneDrive/Desktop/Projects/Programming/python_programs/manim_test/media/videos/gptchord/1080p60/partial_movie_files/CircleChordAnimation/1672018281_3601090440_1497677375.mp4'
+file 'file:C:/Users/matth/OneDrive/Desktop/Projects/Programming/python_programs/manim_test/media/videos/gptchord/1080p60/partial_movie_files/CircleChordAnimation/1672018281_3690780616_4246895004.mp4'
+file 'file:C:/Users/matth/OneDrive/Desktop/Projects/Programming/python_programs/manim_test/media/videos/gptchord/1080p60/partial_movie_files/CircleChordAnimation/1672018281_3315967912_2766052014.mp4'
