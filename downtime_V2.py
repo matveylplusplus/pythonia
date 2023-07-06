@@ -61,10 +61,10 @@ schedule = []
 top_time -= base_clean_time
 schedule.append(TimeBlock("Bedprep", top_time, base_clean_time))
 
-if movie == "y" or sanction == "y":
-    top_time -= phone_check_time
-    schedule.append(TimeBlock("Phone Check", top_time, phone_check_time))
-elif sanction == "n":
+top_time -= phone_check_time
+schedule.append(TimeBlock("Phone Check", top_time, phone_check_time))
+
+if sanction == "n":
     top_time -= non_sanction_time
     schedule.append(
         TimeBlock("Final Meal & Leisure", top_time, non_sanction_time)
@@ -85,13 +85,9 @@ if shower == "y":
     top_time -= shower_time
     schedule.append(TimeBlock("Shower", top_time, shower_time))
 
-if movie == "n":
-    if workout == "y":
-        top_time -= workout_time
-        schedule.append(TimeBlock("Workout", top_time, workout_time))
-    if sanction == "n":
-        top_time -= phone_check_time
-        schedule.append(TimeBlock("Phone Check", top_time, phone_check_time))
+if movie == "n" and workout == "y":
+    top_time -= workout_time
+    schedule.append(TimeBlock("Workout", top_time, workout_time))
 elif movie == "y":
     top_time -= movie_time
     schedule.append(TimeBlock("Movie", top_time, movie_time))
