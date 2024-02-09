@@ -2,6 +2,101 @@ import pandas as pd
 from dateutil import parser
 import datetime
 import numpy
+from abc import ABC, abstractmethod
+from dataclasses import dataclass
+
+
+@dataclass
+class Class:
+    class_name: str
+    major: bool
+    total_points: int
+
+    def compute_class_points(self) -> float:
+        major_factor = 1 if self.major else 5 / 8
+        return major_factor / self.total_points
+
+
+"""class assignment(ABC):
+    @abstractmethod
+    def compute_prindex(self) -> float:"""
+
+
+class PointTemplate(ABC):
+    @abstractmethod
+    def compute_assignment_points(self) -> float:
+        """Computes the points"""
+
+
+@dataclass
+class EvenDistributionPointTemplate(PointTemplate):
+    assignment_count: int
+    total_assignment_points: int
+
+    def compute_assignment_points(self) -> float:
+        return self.total_assignment_points / self.assignment_count
+
+
+@dataclass
+class SingletonPointTemplate(PointTemplate):
+    assignment_points: int
+
+    def compute_assignment_points(self) -> float:
+        return self.assignment_points
+
+
+@dataclass
+class LatePolicyTemplate:
+    scheme: list[(float, str)]
+
+    def get_deadline_count(self) -> int:
+        return int(((self.scheme[-1])[1].split("|"))[0])
+
+
+"""@dataclass
+class LatePolicy:
+    scheme: list[(float, datetime.timedelta)]"""
+
+
+@dataclass
+class Assignment:
+    assignment_name: str
+    cclass: Class
+    # points: int
+    # point_type: point_type
+    # late_policy: lp
+    point_template: PointTemplate
+    late_policy_template: LatePolicyTemplate
+    commute_factor: float
+
+    def compute_prindex(self) -> float:
+        return (
+            self.cclass.compute_class_points()
+            * self.point_template.compute_assignment_points()
+        )
+
+    def compute_cprindex(self) -> float:
+        return self.commute_factor * self.compute_prindex()
+
+
+class AssignmentTemplate(ABC):
+    @abstractmethod
+    def generate_assignment(self, assignment_name, commute_factor) -> float:
+        """Generates an assignment that follows the assignment template."""
+
+
+@dataclass
+class PlpTemplate(AssignmentTemplate):
+    template_name: str
+    point_template: PointTemplate
+    late_policy_package: LatePolicyTemplate
+
+
+############################
+class AssignmentTemplate(ABC):
+    @abstractmethod
+    def form_assignment(self) -> Assignment:
+        """lmao"""
 
 
 def gen_hwopt():
@@ -19,6 +114,13 @@ def gen_hwopt():
 
         return 1
     """
+    # init
+    hwdf = pd.read_csv("hw.csv")
+    classdf = pd.read_csv("class.csv")
+
+    for index, row in hwdf.iterrows():
+        cfac = row["cfac"]
+        using_pct = row["pct"] != "n/a"
 
 
 def gaze():
@@ -234,10 +336,18 @@ Notes
 To do:
     - insert()
         - write to csv files
+        - parse l-scheme
+            - store array of substrings up to +, ask user for len(set(arr))
+              deadlines that go in input_arr,
+              impose order on set (if necessary?), create a dict that makes
+              set(arr)[0]:, set(arr)[1]:deadline2, etc. Concurrently,
+              substrings to the right of + are typecast to ints and stored in a
+              3-tuple (p, x, o)
+            - if x == set(arr)[0] then compute input_arr[0] 
         - Generates:
-            - mpc (hw.csv)
-            - P_1, ... , P_n (dl.csv), where P_n = P_1 + ... + P_{n-1}
-            - dl_1, ... , dl_n (dl.scv)
+            - mpc
+            - P_1, ... , P_n, where P_n = P_1 + ... + P_{n-1}
+            - dl_1, ... , dl_n
     - gaze()
         - rows gaze() should append to hw.csv in a new dataframe that is
           displayed to user:
@@ -386,6 +496,7 @@ over. This dataframe is not written to disk!
 Are total_tpts, count, and pct both necessary in type.csv?
     - We could just ask for total points iff class.total_pts != n/a and then
       convert it to the appropriate pct and enter just into pct
+    - but remember, we want to compute as much as possible during gen()!!!
 
 How to account for varying pcts for assignments that should be the same type?
     - Let type.pct be a default value that you choose to pick in input_hw(). If
@@ -403,5 +514,158 @@ How to account for varying pcts for assignments that should be the same type?
     - if class.total_pts != n/a then ask user both for # of the assignment type
     that is scheduled and how much that type is weighed against class.total_pts
 
-let user define x1, x2 in insert_hw()    
+let user define x1, x2 in insert_hw()  
+
+insert_hw():
+    - check hw.type.lp's schematic in tip.csv and ask user for x1, x2, etc.
+    - then, write x1, x2, etc. into dl.csv with the appropriate ps on the side
+    - all gen() does is filter the appropriate df in dl.csv, compute the sum,
+      and enter it into hw.csv as a temporary column. then sorts
+    - this would make deadlines and late policy assignments basically immutable
+      after entry, unless you write an update() function 
+    - we can't write x1, x2, ... into hw.csv because the number of relevant
+      deadlines can vary
+    - if an assignment's deadline gets extended or something, just input a new
+      assignment and/or type with the info adjusted. I don't got time to make
+      update() rn
+
+hw count might change, tpts could change (though I've never seen this happen)
+
+where to put # of lectures? class.csv? what if class doesn't have lectures??
+
+maybe I should insist on everything being in pct? this whole thing with tpts and
+class points seems to be making the database design very complicated in exchange
+for a quick computation that you really only have to do once a semester for each
+type (if the type has fixed values). It can also be easily re-computed if
+anything changes. Accommodating every possible way a class can present its grade
+distributions (in terms of percentages on types, points on types, points on each
+member of type, percentages on each member of type) feels like it gives marginal
+returns for large investment. This approach also helps performance because of
+less if-branching and no point computations
+    - "homeworks are collectively worth 100 points and there are 600 total points"
+    - "homeworks are collectively worth 1/6th of your grade"
+    - "each homework is 10 points and there are 10 homeworks"
+    - "each homework is 1/60th of your grade"
+    - actually, for psyc100 worksheets I would have to divide the # of points by
+      the total amount of points that ws are worth every single fucking time.
+      this is kind of annoying but is automating it worth the dev time?
+    - Also I would have to use some other calculator (that may use some other
+      level of float precision than python does) to get the percent I need, which
+      can throw off prindexes. Unless I make a special case for user to input
+      fractions, which sounds retarded
+    - it feels like unless I make the most robust program imaginable that
+      accounts for every possible way grade distributions can be expressed on a
+      syllabus you're never going to automate *all* the computation
+    - but just because you can't account for every scenario doesn't mean you
+      shouldn't account for the most common ones
+
+types are assignment templates meant to automate specified assignment attributes
+    - what if we split everything into  p-templates, lp-templates
+    - but then we would just want template templates
+    - p-templates dont make much sense because very rarely do other classes
+      have the same grade distribution
+    - lp-templates make sense because late policies often repeat across classes
+    - give users the option to not use templates; some assignments are unique
+      and just don't repeat
+        - get rid of the type attribute on hw; it will be asked for and looked
+          up, but all the relevant information will be entered into the hw
+          entry. There'll be no need to refer to the type entry
+        - but then how would gen() compute the percentages at run-time? It needs
+          access to shit like how many points cmsc351 homeworks collectively
+          take up...where would that data be placed and how would gen() access
+          it? 
+        - maybe we should keep the type block but let it be n/a 
+
+what if we just do the ORM? Iterating through each csv already knowing what kind
+of object it is seems way easier than iterating through everything at once and
+repeatedly checking all the attributes to figure out how to treat it
+    - pt_hw.csv + pct_hw.csv. Go through pt_hw knowing *every* entry has a class
+      that has a
+      total_pts attribute and a template that has total_type_pts and
+      type_count. Then go through 
+    - I would need 3*2 = 6 hw tables
+        - pct man-lp
+        - pct type-lp
+        - pt man-lp
+        - pt type-lp
+        - man man-lp
+        - man type-lp
+    - man is fine. Just split along pt/pct
+
+fuck it. what if we just replaced type.csv with constructors in a hw class
+
+bro holy fucking shit. load every hw assignment in from a db into an array. Then
+iterate thru the array and take advantage of polymorphism to call a
+compute_prindex() interface method for each one. Then we can just have a list of
+tuples (assignment_name, prindex) and then sort the list by prindex
+
+have total type points be a class var for each school class?
+
+class class has an array of assignment_types?
+
+assignment type objects with assignment types (or their fields) being passed
+into hw constructor?
+
+man points -> total class points, lp (sc)
+man pct -> nothing!
+typed points -> total class points, total type points, type count (sc, t)
+typed pct -> total type pct, type count (t)
+
+we need 2 db's...one point-wise grade distribution and one pct-wise grade
+distribution
+    - identical to (inner?) joining class.db and type.db along class_name
+    - class_name, major_state, type_name, pct/pts of grade, count, lp
+    - total class points can be obtained by summing pt cells (or could be placed
+      in class.db) and joined like major_state
+    - should be a literal copy-paste from syllabus that you can make in excel or
+    sheets and then download
+    - every assignment you put in should have a type that's in one of these
+    grade distros
+    - assignments.db is class_name, type_name, 
+x db's
+    - ed lp
+    - ed nlp
+    - ud lp
+    - ud nlp
+Each assignment type has a distribution function?
+    - But if distribution is uneven, the only conceivable reason for having a
+      type in the first place 
+
+Classes that deal in percents are just classes where total_points = 100
+
+Assignment templates should just be constructor auto-completers
+    - for late policies, yes. But not for point templates: assignments should
+      hold references to point templates so that when the point templates change
+      the assignment prindex computations change with them
+
+Where should input be asked for??
+    - and then he said its polymorphin time and polymorphed all over the place
+    - having a form_assignment() method as part of assignment_template's
+      interface makes a lot of sense...but how do we avoid redundant code for
+      inputting the assignment name and the deadlines and what have you
+    - the duplicate fields are name, class, 
+
+We're never gonna have more than 2 different completely unrelated deadlines on a
+late policy...right? So why design for an n-ary deadline use case?
+    - But what if we do??
+
+1|0
+1|24
+1|48
+1|72
+
+1|0
+2|0
+
+make LatePolicyTemplate a class cuz even tho rn it's only going to be
+implemented with a single tuple of tuples u might find a better implementation
+later and wouldn't have to restructure everything 
+    - generate_late_policy() function similar to generate_assignment()?
+
+Late policy templates should never change...if the late policy for your
+homeworks changed you should just make a new late policy template and refer your
+hws' AssignmentTemplate to the new late policy template
+    - this means Assignment needs to have a reference to AssignmentTemplate!!
+
+could just make a bunch of type factories...
 """
