@@ -4,6 +4,7 @@ import datetime
 import numpy
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
+from typing import Union
 
 
 @dataclass
@@ -16,11 +17,79 @@ class Class:
         major_factor = 1 if self.major else 5 / 8
         return major_factor / self.total_points
 
+@dataclass
+class LatePolicyTemplate:
+    lscheme: list[(float, str)]
+
+    def get_deadline_count(self) -> int:
+        return int(((self.scheme[-1])[1].split("|"))[0])
+
+
+"""@dataclass
+class LatePolicy:
+    scheme: list[(float, datetime.timedelta)]"""
+
+@dataclass
+class PointAssignmentTemplate():
+    template_name: str
+    points: int
+
+    def compute_template_points(self) -> int:
+        return self.points
+
+@dataclass 
+class LatePolicyAssignmentTemplate():
+    template_name: str
+    late_policy_template: LatePolicyTemplate
+
+    def get_late_policy_template(self) -> LatePolicyTemplate:
+        return self.late_policy_template
+
+@dataclass
+class DualAssignmentTemplate():
+    point_assignment_template: PointAssignmentTemplate
+    late_policy_assignment_template: LatePolicyAssignmentTemplate
+
+    def compute_template_points(self) -> int:
+        return self.point_assignment_template.compute_template_points()
+    
+    def get_late_policy_template(self) -> LatePolicyTemplate:
+        return self.late_policy_assignment_template.get_late_policy_template()
+
+
+
+class PointPackage(ABC):
+    @abstractmethod
+    def compute_points(self) -> float:
+        pass
+    def push_manual(self, int) -> float:
+        pass
+    def pull_manual(self, )
+
+@dataclass    
+class RawPointPackage(PointPackage):
+    points: int
+
+    def compute_points(self) -> float:
+        return self.points
+
+@dataclass 
+class TemplatedPointPackage(PointPackage):
+    assignment_template: AssignmentTemplate
+
+@dataclass
+class Assignment:
+    assignment_name: str
+    school_class: Class
+    commute_factor: float
+    point_package: PointPackage
+    late_policy_package: LatePolicyPackage
 
 """class assignment(ABC):
     @abstractmethod
     def compute_prindex(self) -> float:"""
 
+############################
 
 class PointTemplate(ABC):
     @abstractmethod
@@ -44,41 +113,6 @@ class SingletonPointTemplate(PointTemplate):
     def compute_assignment_points(self) -> float:
         return self.assignment_points
 
-
-@dataclass
-class LatePolicyTemplate:
-    scheme: list[(float, str)]
-
-    def get_deadline_count(self) -> int:
-        return int(((self.scheme[-1])[1].split("|"))[0])
-
-
-"""@dataclass
-class LatePolicy:
-    scheme: list[(float, datetime.timedelta)]"""
-
-
-@dataclass
-class Assignment:
-    assignment_name: str
-    cclass: Class
-    # points: int
-    # point_type: point_type
-    # late_policy: lp
-    point_template: PointTemplate
-    late_policy_template: LatePolicyTemplate
-    commute_factor: float
-
-    def compute_prindex(self) -> float:
-        return (
-            self.cclass.compute_class_points()
-            * self.point_template.compute_assignment_points()
-        )
-
-    def compute_cprindex(self) -> float:
-        return self.commute_factor * self.compute_prindex()
-
-
 class AssignmentTemplate(ABC):
     @abstractmethod
     def generate_assignment(self, assignment_name, commute_factor) -> float:
@@ -91,12 +125,38 @@ class PlpTemplate(AssignmentTemplate):
     point_template: PointTemplate
     late_policy_package: LatePolicyTemplate
 
-
-############################
-class AssignmentTemplate(ABC):
+class Assignment(ABC):
     @abstractmethod
-    def form_assignment(self) -> Assignment:
-        """lmao"""
+    def compute_prindex(self) -> float:
+        """Computes da prindex"""
+
+
+@dataclass
+class ManualAssignment(Assignment):
+    assignment_name: str
+    cclass: Class
+    commute_factor: float
+    points: int
+    late_policy: 
+
+@dataclass
+class Assignment:
+    assignment_name: str
+    cclass: Class
+    # points: int
+    # point_type: point_type
+    # late_policy: lp
+    template: AssignmentTemplate
+    commute_factor: float
+
+    def compute_prindex(self) -> float:
+        return (
+            self.cclass.compute_class_points()
+            * self.point_template.compute_assignment_points()
+        )
+
+    def compute_cprindex(self) -> float:
+        return self.commute_factor * self.compute_prindex()
 
 
 def gen_hwopt():
@@ -665,7 +725,79 @@ later and wouldn't have to restructure everything
 Late policy templates should never change...if the late policy for your
 homeworks changed you should just make a new late policy template and refer your
 hws' AssignmentTemplate to the new late policy template
-    - this means Assignment needs to have a reference to AssignmentTemplate!!
+    - this means Assignment needs to have a reference to AssignmentTemplate
+      instead of a direct reference to LatePolicyTemplate
 
 could just make a bunch of type factories...
+
+assignment_input()
+    - Ask user for class name, name of assignment, commute factor
+    - Ask user for template
+        - If entered != n/a: 
+            - query template in db and figure out what it takes care of
+                - if template takes care of points and lp, ask for deadlines
+                - if template takes care of only points, ask for late policy and
+                  deadlines 
+                  if template takes care of only late policy, ask for points and
+                  deadlines 
+            - enter assignment into db
+        - If entered = n/a:
+            - ask user for points, Late Policy, deadlines relevant to late
+              policy 
+            - enter assignment into db
+
+Consider this
+    - You have a cmsc351 homework template that accounts for both late policy
+      and points, where the late policy is stand
+    - you've entered hw9 into the db and are currently working on it
+    - an announcement comes out saying that due to the sheer difficulty of the
+      assignment, hw9's late policy will change from stand to 1x10
+    - what do
+        - you don't want to change the template's late policy, because this
+          change applies literally only to hw9
+        - but how do you change hw9's late policy if its determined strictly via
+          reference to the cmsc351hw template 
+
+Modifying a template should modify all assignments that use it, but modifying an
+assignment should not modify its template
+    - furthermore, you should be able to "un-modify" an assignment back into
+      using its template in case you (or the professor) made a mistake (so the
+      reference shouldn't just be thrown away) 
+
+All assignments have Points and LatePolicy objects that can be either references
+to templates or raw values? With compute_points() and compute_late_policy()
+methods 
+    - Points
+        - Points.manual: bool
+        - Points.manpoints: int
+        - Points.assignment_template: AssignmentTemplate (optional)
+        - Points.compute_points()
+            - if manual then return self.manpoints
+            - else self.assignment_template.compute_points()
+        - Points.set_manual(manpoints)
+            - self.manpoints = manpoints
+            - manual = on
+
+type.assignment_count / total value of all type.assignments can be computed at
+input and entered into AssignmentTemplate just in terms of points   
+
+Interface implementation at the level of Assignment or at the level of
+Assignment.PointPackage? 
+    - At the level of assignment = field duplication (assignment_name,
+      commute_factor, school_class)
+    - At the level of PointPackage = PointPackage.compute_points ->
+      AssignmentTemplate.compute_points 
+
+type hints in function parameters?
+
+Questions
+    - "figure out what it takes care of" is basically a run-time type check that
+      can be settled wuth polymorphism by giving the AssignmentTemplate
+      interface a generate_assignment() method
+    - but then how the fuck do we generate assignments that don't use templates
+    - and how the fuck do we implement template overrides
+
+Multiple interfaces?
+
+But why pollute your codebase with interfaces in a world of ducktyping?
 """

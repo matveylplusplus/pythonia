@@ -1,0 +1,8 @@
+name: pd
+channels:
+  - defaults
+dependencies:
+  - python
+  - pandas
+  - conda-forge::pyarrow
+prefix: /home/matthecrazyguy/miniconda3/envs/pd
