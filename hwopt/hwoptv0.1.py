@@ -800,4 +800,29 @@ Questions
 Multiple interfaces?
 
 But why pollute your codebase with interfaces in a world of ducktyping?
+
+How much python do we even really need, anyway?
+    - Parsing the late policy needs python
+    - Insertion of data needs python
+        - user needs to input number of deadlines that varies based on the late
+          policy that was selected; this cannot be done in one simple SQL
+          statement 
+    - I'm going to wager that prindex gen also needs python
+
+Mutable assignment entries would require: 
+    - a method that drops all linked dl entries and replaces them with new ones,
+      for when a single assignment's lp is modified (re-input of deadlines
+      potentially necessary)
+    - a method that drops the linked dl entries of every relevant assignment and
+      replaces them with new ones (asking the user for re-input on each one!), 
+      for when an assignment template's lp is modified 
+    - all in the service of an extremely rare edge-case situation that would at
+      worst require a re-input of like 2 or 3 assignments? 
+    - this functionality cannot be worth the development time
+
+create temp dl table with appended p_n / (deadline minus datetime.now()) column, (SUM GROUPBY assignment_name) * maj_factor * assignment_points * com_fac and then sort desc on inner join of class, assignment tables
+
+late_policy_phase_templates table where deadlines column entries are 1, 1, 2, ... when user indicates they want to use one python fetches the relevant phase set, takes the last entry's number x, asks for x deadlines, maps them w/ 1, 2, 3 ... in a dict, and then loops thru the phase set executing an insert into the late_policy_phases table on each iteration using the dict
+
+when user wants to use a template, the template is fetched as a tuple from templates table and the assignment's insert statement is plugged in w/ the proper elements of the tuple; the assignment holds no reference to the template (as an attribute or otherwise)
 """
