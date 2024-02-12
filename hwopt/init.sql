@@ -1,0 +1,1 @@
+CREATE TABLE IF NOT EXISTS classes (class_name, major_or_gened, total_points);

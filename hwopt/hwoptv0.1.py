@@ -1,3 +1,15 @@
+"""
+To do:
+    - insert()
+        - insert_class()
+        - insert_late_policy()
+        - insert_template()
+        - insert_assignment()
+            - clean_deadlines()
+            - place results in temp table, which user can then sort by prindex or c-prindex
+    - compute_prindex()
+"""
+
 import pandas as pd
 from dateutil import parser
 import datetime
@@ -825,4 +837,13 @@ create temp dl table with appended p_n / (deadline minus datetime.now()) column,
 late_policy_phase_templates table where deadlines column entries are 1, 1, 2, ... when user indicates they want to use one python fetches the relevant phase set, takes the last entry's number x, asks for x deadlines, maps them w/ 1, 2, 3 ... in a dict, and then loops thru the phase set executing an insert into the late_policy_phases table on each iteration using the dict
 
 when user wants to use a template, the template is fetched as a tuple from templates table and the assignment's insert statement is plugged in w/ the proper elements of the tuple; the assignment holds no reference to the template (as an attribute or otherwise)
+
+insert_class() could just generate a school_class object and then run the object's insert_into_db() method
+
+pass raw input into SchoolClass constructor and then have constructor parse major_state boolean into a self.major_factor field or whatever (or just send it straight into the insert_into_db(), no class required)
+
+generic db_insert()?
+    - how to account for varying attribute counts?
+
+don't store major_factor in db...this exposes implementation relevant only to generate_prindex()...just store 1/0 or TRUE/FALSE or M/G
 """
