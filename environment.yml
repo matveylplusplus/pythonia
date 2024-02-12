@@ -1,8 +1,6 @@
-name: pd
+name: hwopt
 channels:
   - defaults
 dependencies:
   - python
-  - pandas
-  - conda-forge::pyarrow
-prefix: /home/matthecrazyguy/miniconda3/envs/pd
+prefix: C:\Users\matth\miniconda3\envs\hwopt
