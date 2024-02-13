@@ -1,5 +1,5 @@
 """
-To do:
+To do ASAP:
     - insert()
         - insert_class()
         - insert_late_policy()
@@ -8,6 +8,12 @@ To do:
             - clean_deadlines()
             - place results in temp table, which user can then sort by prindex or c-prindex
     - compute_prindex()
+
+Features for the future, possibly:
+    - Being able to go back a page without quitting the whole program with ctrl+c
+    - Updating templates updates all users of that template
+    - Accounting for drops 
+    - Accounting for extra credit
 """
 
 import pandas as pd
