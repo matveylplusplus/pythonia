@@ -10,10 +10,10 @@ To do ASAP:
     - compute_prindex()
 
 Features for the future, possibly:
-    - Being able to go back a page without quitting the whole program with ctrl+c
     - Updating templates updates all users of that template
     - Accounting for drops 
     - Accounting for extra credit
+    - more retard checking (in terms of input that is considered valid)
 """
 
 import pandas as pd

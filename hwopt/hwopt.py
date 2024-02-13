@@ -41,7 +41,19 @@ def insert_late_policy():
     policy_name = input(" - policy name: ")
     tip_count = input(" - turn-in phase count: ")
 
-    i = 0
+    i = 1
+    total_pct_value = 1
+    while i < tip_count:
+        pct_value = input(f" - % deduction after phase {i}: ")
+        total_pct_value -= pct_value
+        deadline_scheme = input(f" - deadline scheme for phase {i+1}: ")
+        entry_list.append(
+            [
+                policy_name,
+                pct_value,
+            ]
+        )
+    entry_list.insert(0, [policy_name, total_pct_value, "1|0"])
 
 
 def insert_assignment_template():
@@ -63,21 +75,26 @@ def get_insert_input() -> str:
 
 
 def process_insert_input(pick: str):
-    if pick == "1":
-        insert_class()
-    elif pick == "2":
-        insert_late_policy()
-    elif pick == "3":
-        insert_assignment_template()
-    elif pick == "4":
-        insert_assignment()
+    try:
+        if pick == "1":
+            insert_class()
+        elif pick == "2":
+            insert_late_policy()
+        elif pick == "3":
+            insert_assignment_template()
+        elif pick == "4":
+            insert_assignment()
+    except KeyboardInterrupt:
+        print()
+        pass
 
 
 def insert_loop():
     try:
         while True:
             process_insert_input(get_insert_input())
-    
+    except KeyboardInterrupt:
+        pass
 
 
 def generate_prindex_table():
