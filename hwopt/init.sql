@@ -12,6 +12,7 @@ CREATE TABLE IF NOT EXISTS late_phases (
         0 < pct_value
         AND pct_value <= 1
     ),
-    deadline_scheme TEXT,
-    PRIMARY KEY (policy_name, deadline_scheme)
+    deadline TEXT,
+    deadline_offset INT,
+    PRIMARY KEY (policy_name, deadline, deadline_offset)
 );

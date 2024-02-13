@@ -14,6 +14,9 @@ Features for the future, possibly:
     - Accounting for drops 
     - Accounting for extra credit
     - more retard checking (in terms of input that is considered valid)
+    - insert_late_policy()
+        - instead of having to enter 0 for deadline_offset every time deadline_num increments, could we make it automatic?
+        - 
 """
 
 import pandas as pd
@@ -547,13 +550,15 @@ Input goes in the middle of a [0, 1] array and then differences are taken
     - an assignment type has a late policy (1:1), which has several turn-in
       phases (tips, 1:many)
 
-lp          |phase  |pct |dl
-cmsc330proj |1      |0.1 |x1
-cmsc330proj |2      |0.9 |x1+1
-
+lp
+cmsc
+      
 lp          |phase  |pct    |dl
+cmsc330proj |1      |0.1    |x1
+cmsc330proj |2      |0.9    |x1+1
 psyc100wssa |1      |0.05   |x1
 psyc100wssa |2      |0.95   |x2
+cmsc351hw   |1      |1      |x1
 
 test without writing to csv (instead printing the df), then write to csv?
 
@@ -852,4 +857,19 @@ generic db_insert()?
     - how to account for varying attribute counts?
 
 don't store major_factor in db...this exposes implementation relevant only to generate_prindex()...just store 1/0 or TRUE/FALSE or M/G
+
+"for every x late until y" (staircase) vs completely-manual
+
+given n tips and d unique deadlines,
+    - n deadline_nums are asked for
+    - n-d offsets are asked for
+    - n-1 deductions are asked for
+
+some templates should have concrete deadlines instead of variables...
+    - deadline column can be filled either with variables (x1, x2, ...) or concrete deadlines (2024-02-01 00:00:00). Concrete deadline is assumed first, and if ParserError is caught then its assumed to be a var (on both read AND write)
+    - or should variables be replaced with n/a?
+        - no, because what if we have x1 followed by x2...
+    - split on "x[num]" and get value at index 1 to get [num]
+
+Input in deadline groups?
 """

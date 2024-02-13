@@ -1,4 +1,5 @@
 import sqlite3
+from dateutil import parser
 
 
 def store(table_name: str, entry_tuple: tuple[str]):
@@ -17,7 +18,7 @@ def insert_class():
     go = 0
     i = 0
 
-    print("\nProvide the following information (or hit q to exit)...")
+    print("\nProvide the following information (or hit Ctrl+C to exit)...")
     while i < len(input_list):
         inp = input(f" - {input_list[i]}: ")
         if inp == "q":
@@ -33,7 +34,47 @@ def insert_class():
 
 
 def insert_late_policy():
-    input_list1 = ["policy name", "turn-in phase count"]
+    entry_list = []
+    deadline_count_pairs = []
+    print("\nProvide the following information (or hit Ctrl+C to exit)...")
+    policy_name = input(" - policy name: ")
+    independent_deadlines_count = input(" - # of independent deadlines: ")
+
+    for i in range(independent_deadlines_count):
+        deadline_input = input(f"   - deadline {i}: ")
+        try:
+            # if you're giving a concrete date, let the parser interpret it and paste it in a nice format
+            deadline = str(parser.parse(deadline_input))
+        except parser.ParserError:
+            # if it's not a concrete date, then I assume that it's a valid date variable...might be bad but idk
+            deadline_input = deadline
+        deadline_count = int(input(f"   - # of phases dependent on deadline {i}: "))
+        deadline_count_pairs.append((deadline, deadline_count))
+    
+    total_value = 1
+    for i in range(len(deadline_count_pairs)):
+        for j in range(deadline_count_pairs[i][1]):
+            
+            hour_offset = 0
+            if j != 0:
+                hour_offset = print()
+            if i == len(deadline_count_pairs) - 1 and j == deadline_count_pairs[i][1] - 1:
+                
+            
+
+    """entry_list = []
+    print("\nProvide the following information (or hit q to exit)...")
+    policy_name = input(" - policy name: ")
+    tip_count = input(" - turn-in phase count: ")
+    i = 0
+    while i < tip_count:
+        deadline_offset = 0
+        deadline_num = input(f" - deadline num (phase {i+1}): ")
+        if i > 0 and deadline_num:
+            deadline_offset = input(f" deadline offset (phase {i+1})")
+        entry_list.append([policy_name, deadline_num, deadline_offset])"""
+
+    """input_list1 = ["policy name", "turn-in phase count"]
     entry_list = []
     go = 1
 
@@ -44,7 +85,9 @@ def insert_late_policy():
     i = 1
     total_pct_value = 1
     while i < tip_count:
-        pct_value = input(f" - % deduction after phase {i}: ")
+        pct_value = input(
+            f" - % deduction (from original grade) after phase {i}: "
+        )
         total_pct_value -= pct_value
         deadline_scheme = input(f" - deadline scheme for phase {i+1}: ")
         entry_list.append(
@@ -53,7 +96,7 @@ def insert_late_policy():
                 pct_value,
             ]
         )
-    entry_list.insert(0, [policy_name, total_pct_value, "1|0"])
+    entry_list.insert(0, [policy_name, total_pct_value, "1|0"])"""
 
 
 def insert_assignment_template():
