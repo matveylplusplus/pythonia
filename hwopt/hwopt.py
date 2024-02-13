@@ -73,8 +73,11 @@ def process_insert_input(pick: str):
         insert_assignment()
 
 
-def insert():
-    process_insert_input(get_insert_input())
+def insert_loop():
+    try:
+        while True:
+            process_insert_input(get_insert_input())
+    
 
 
 def generate_prindex_table():
@@ -97,7 +100,7 @@ def process_menu_input(pick: str) -> int:
     if pick == "1":
         generate_prindex_table()
     elif pick == "2":
-        insert()
+        insert_loop()
     else:
         return 0
     return 1
