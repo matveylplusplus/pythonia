@@ -16,3 +16,14 @@ CREATE TABLE IF NOT EXISTS late_phases (
     deadline_offset INT,
     PRIMARY KEY (policy_name, deadline, deadline_offset)
 );
+CREATE TABLE IF NOT EXISTS assignment_templates (
+    template_name TEXT PRIMARY KEY,
+    class_name TEXT,
+    pct_value REAL CHECK (
+        0 < pct_value
+        AND pct_value <= 1
+    ),
+    late_policy_name TEXT,
+    FOREIGN KEY (late_policy_name) REFERENCES late_phases (policy_name) ON UPDATE CASCADE,
+    FOREIGN KEY (class_name) REFERENCES classes (class_name) ON UPDATE CASCADE
+);

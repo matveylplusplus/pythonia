@@ -16,6 +16,7 @@ Features for the future, possibly:
     - more retard checking (in terms of input that is considered valid)
     - insert_late_policy()
         - subsidiary function that generates "you lose 5 points for every day that it's late" kind of policies without making the user type in 5, 5, 5, 5, ... 
+    - why doesn't sqlite viewer on vscode show late_policy_name as a foreign key in the assignment_templates table?
 """
 
 import pandas as pd
@@ -838,6 +839,7 @@ Mutable assignment entries would require:
     - a method that drops the linked dl entries of every relevant assignment and
       replaces them with new ones (asking the user for re-input on each one!), 
       for when an assignment template's lp is modified 
+    - for points it would probably mean implementing triggers
     - all in the service of an extremely rare edge-case situation that would at
       worst require a re-input of like 2 or 3 assignments? 
     - this functionality cannot be worth the development time
@@ -871,4 +873,6 @@ some templates should have concrete deadlines instead of variables...
     - split on "x[num]" and get value at index 1 to get [num]
 
 Input in deadline groups?
+
+raw point value vs cumulative value of type / # of assignments (both divided by class points )
 """

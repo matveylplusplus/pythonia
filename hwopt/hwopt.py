@@ -72,9 +72,7 @@ def insert_late_policy():
                 i != len(deadline_count_pairs) - 1
                 or j != deadline_count_pairs[i][1] - 1
             ):
-                deduct = Decimal(
-                    input(f"   - pct deduction {j+1}: ")
-                ) / Decimal(100)
+                deduct = Decimal(input(f"   - pct deduction {j+1}: ")) / 100
 
             entry_list.append(
                 (
