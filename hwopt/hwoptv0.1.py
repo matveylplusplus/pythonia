@@ -15,8 +15,7 @@ Features for the future, possibly:
     - Accounting for extra credit
     - more retard checking (in terms of input that is considered valid)
     - insert_late_policy()
-        - instead of having to enter 0 for deadline_offset every time deadline_num increments, could we make it automatic?
-        - 
+        - subsidiary function that generates "you lose 5 points for every day that it's late" kind of policies without making the user type in 5, 5, 5, 5, ... 
 """
 
 import pandas as pd

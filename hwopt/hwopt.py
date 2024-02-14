@@ -1,4 +1,5 @@
 import sqlite3
+from decimal import Decimal
 from dateutil import parser
 
 
@@ -30,73 +31,66 @@ def insert_class():
 
     # attr_list[1] = 1 if attr_list[1] == "T" else gened_penalty
     if go == 1:
-        store("classes", tuple(entry))
+        entry = tuple(entry)
+        print(f"Inserting {entry}...")
+        store("classes", entry)
+        print("Done!")
 
 
 def insert_late_policy():
+    # init
     entry_list = []
     deadline_count_pairs = []
+    prev_deduct = Decimal(0)
+
+    # input
     print("\nProvide the following information (or hit Ctrl+C to exit)...")
     policy_name = input(" - policy name: ")
-    independent_deadlines_count = input(" - # of independent deadlines: ")
-
+    independent_deadlines_count = int(input(" - # of independent deadlines: "))
     for i in range(independent_deadlines_count):
-        deadline_input = input(f"   - deadline {i}: ")
+        deadline = input(f"   - deadline {i+1}: ")
         try:
             # if you're giving a concrete date, let the parser interpret it and paste it in a nice format
-            deadline = str(parser.parse(deadline_input))
+            deadline = str(parser.parse(deadline))
         except parser.ParserError:
             # if it's not a concrete date, then I assume that it's a valid date variable...might be bad but idk
-            deadline_input = deadline
-        deadline_count = int(input(f"   - # of phases dependent on deadline {i}: "))
+            pass
+        deadline_count = int(
+            input(f"   - # of phases dependent on deadline {i+1}: ")
+        )
         deadline_count_pairs.append((deadline, deadline_count))
-    
-    total_value = 1
     for i in range(len(deadline_count_pairs)):
+        # for formatting
+        if i != 1 and deadline_count_pairs[i][1] > 1:
+            print(f" - {deadline_count_pairs[i][0]} -")
         for j in range(deadline_count_pairs[i][1]):
-            
+            deduct = 1
             hour_offset = 0
             if j != 0:
-                hour_offset = print()
-            if i == len(deadline_count_pairs) - 1 and j == deadline_count_pairs[i][1] - 1:
-                
-            
+                hour_offset = int(input(f"   - hour offset {j}: "))
+            if (
+                i != len(deadline_count_pairs) - 1
+                or j != deadline_count_pairs[i][1] - 1
+            ):
+                deduct = Decimal(
+                    input(f"   - pct deduction {j+1}: ")
+                ) / Decimal(100)
 
-    """entry_list = []
-    print("\nProvide the following information (or hit q to exit)...")
-    policy_name = input(" - policy name: ")
-    tip_count = input(" - turn-in phase count: ")
-    i = 0
-    while i < tip_count:
-        deadline_offset = 0
-        deadline_num = input(f" - deadline num (phase {i+1}): ")
-        if i > 0 and deadline_num:
-            deadline_offset = input(f" deadline offset (phase {i+1})")
-        entry_list.append([policy_name, deadline_num, deadline_offset])"""
+            entry_list.append(
+                (
+                    policy_name,
+                    str(deduct - prev_deduct),
+                    deadline_count_pairs[i][0],
+                    hour_offset,
+                )
+            )
+            prev_deduct = deduct
 
-    """input_list1 = ["policy name", "turn-in phase count"]
-    entry_list = []
-    go = 1
-
-    print("\nProvide the following information (or hit q to exit)...")
-    policy_name = input(" - policy name: ")
-    tip_count = input(" - turn-in phase count: ")
-
-    i = 1
-    total_pct_value = 1
-    while i < tip_count:
-        pct_value = input(
-            f" - % deduction (from original grade) after phase {i}: "
-        )
-        total_pct_value -= pct_value
-        deadline_scheme = input(f" - deadline scheme for phase {i+1}: ")
-        entry_list.append(
-            [
-                policy_name,
-                pct_value,
-            ]
-        )
-    entry_list.insert(0, [policy_name, total_pct_value, "1|0"])"""
+    # storing in table
+    for i in range(len(entry_list)):
+        print(f"Inserting {entry_list[i]}...")
+        store("late_phases", entry_list[i])
+    print("Done!")
 
 
 def insert_assignment_template():
