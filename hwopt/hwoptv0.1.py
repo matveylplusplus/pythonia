@@ -7,16 +7,22 @@ To do ASAP:
         - insert_assignment()
             - clean_deadlines()
             - place results in temp table, which user can then sort by prindex or c-prindex
+        - drop_assignment()
     - compute_prindex()
+    - update_assignment()
+        - update_points()
+        - update_deadlines()
 
 Features for the future, possibly:
-    - Updating templates updates all users of that template
+    - Updating templates updates all users of that template, at least for points (late policies would require the user to enter extra deadlines if the # of independent deadlines in the late policy increases, which might be too complicated and useless to be worth implementing)
     - Accounting for drops 
     - Accounting for extra credit
     - more retard checking (in terms of input that is considered valid)
     - insert_late_policy()
-        - subsidiary function that generates "you lose 5 points for every day that it's late" kind of policies without making the user type in 5, 5, 5, 5, ... 
+        - subsidiary function that generates "you lose 5 points for every day that it's late" kind of policies without making the user type in 5, 5, 5, 5, ... (staircase mode)
     - why doesn't sqlite viewer on vscode show late_policy_name as a foreign key in the assignment_templates table?
+    - drop_class()
+    - drop_template()
 """
 
 import pandas as pd
@@ -875,4 +881,26 @@ some templates should have concrete deadlines instead of variables...
 Input in deadline groups?
 
 raw point value vs cumulative value of type / # of assignments (both divided by class points )
+
+clean_late_phases(): DELETE deadline WHERE julianday(deadline) < julianday(now) or something
+
+clean_assignments(): DELETE 
+
+dl could be a temp table formed every time compute_prindex is run...it would only need to reference a table of concrete deadlines that user inputs for each assignment and the reference to late_phases to make the substitution into
+
+Potential tables to allow easy mutability:
+    - assignments
+    - pt_ref_assignments
+    - flat_pt_template
+    - counted_pt_template
+But how would we type check? The first two being the most important. Could use either SQL triggers or python code, but we have to be able to distinguish between assignments that had points manually entered and assignments that are deferring to templates
+
+Assignments have a template attribute, which could be null
+
+Triggers:
+    - On each assignment (DELETE assignment deadline phases)
+    - On each assignment deadline phase (DELETE assignment)
+    - On each assignment template's points (UPDATE assignment points)
+
+class.total_points gets updated -> all assignment templates using class.total_points to compute pct_value get updated -> all assignments using these assignment templates get updated
 """
