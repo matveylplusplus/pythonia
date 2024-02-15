@@ -903,4 +903,36 @@ Triggers:
     - On each assignment template's points (UPDATE assignment points)
 
 class.total_points gets updated -> all assignment templates using class.total_points to compute pct_value get updated -> all assignments using these assignment templates get updated
+
+is doing math in sql fundamentally not a good idea because of floating point error? 
+
+for generate_prindex table, inner join on class_name, assignment_template is a possible native-sql alternative to the "just follow the references" method (which we could definitely do in python and maybe do in native sql). But how could we possibly solve the floating point arithmetic problem without resorting to Python's Decimal class?
+
+INSERT INTO test VALUES (DECIMAL((303.0/100.0) + (301.0/100)));
+INSERT INTO test VALUES (DECIMAL((2*1.0/5)*(1*1.0)*(300*1.0/11)*(1*1.0/600)*(100*1.0)*(1*1.0/130000)));
+    - Every term has to be multiplied by 1.0! Otherwise sqlite will perform integer division
+
+don't forget to multiply by 100 at the end!
+
+SUM() works only on columns...
+
+Final select would look something like 
+    SELECT assignment_name, DECIMAL(major_factor*pct_value*(1.0/total_class_points)*(SUM(ptime))) as prindex, DECIMAL(commute_factor*major_factor*pct_value*(1.0/total_class_points)*(SUM(ptime))) as c-prindex
+    FROM massive_joined_table
+    GROUP BY assignments.assignment_name;
+    ORDER BY prindex DESC;  
+
+SELECT DISTINCT deadline 
+FROM late_phases
+WHERE deadline.policy_name = assignment.late_policy
+-> loop through the list, asking user to put in a concrete date for each datevar (skipping over concrete dates that were in the late policy to begin with), storing in another list
+-> store all the shit in the dlsubs table (assignment_name, template_dl, concrete_dl)
+-> end of insert_assignment() (we don't want to couple the deadlines to the offsets until prindex generation, because the deadlines can change)
+-> enter compute_prindex()
+-> join dlsubs with late_phases on template_dl and assignment_name
+-> parse concrete_dl and add with parsed hour_offset (timedelta) to form a new column
+-> divide late_phases' pct_value by the difference between the new column and now to make a new column
+-> and ONLY NOW can you sum 
+
+parser.parse(arr[deadline]) + datetime.timedelta(hours = arr[hour_offset])
 """
