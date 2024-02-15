@@ -882,11 +882,11 @@ Input in deadline groups?
 
 raw point value vs cumulative value of type / # of assignments (both divided by class points )
 
-clean_late_phases(): DELETE deadline WHERE julianday(deadline) < julianday(now) or something
+clean_lp_template_phases(): DELETE deadline WHERE julianday(deadline) < julianday(now) or something
 
 clean_assignments(): DELETE 
 
-dl could be a temp table formed every time compute_prindex is run...it would only need to reference a table of concrete deadlines that user inputs for each assignment and the reference to late_phases to make the substitution into
+dl could be a temp table formed every time compute_prindex is run...it would only need to reference a table of concrete deadlines that user inputs for each assignment and the reference to lp_template_phases to make the substitution into
 
 Potential tables to allow easy mutability:
     - assignments
@@ -917,22 +917,60 @@ don't forget to multiply by 100 at the end!
 SUM() works only on columns...
 
 Final select would look something like 
-    SELECT assignment_name, DECIMAL(major_factor*pct_value*(1.0/total_class_points)*(SUM(ptime))) as prindex, DECIMAL(commute_factor*major_factor*pct_value*(1.0/total_class_points)*(SUM(ptime))) as c-prindex
-    FROM massive_joined_table
-    GROUP BY assignments.assignment_name;
-    ORDER BY prindex DESC;  
 
 SELECT DISTINCT deadline 
-FROM late_phases
+FROM lp_template_phases
 WHERE deadline.policy_name = assignment.late_policy
 -> loop through the list, asking user to put in a concrete date for each datevar (skipping over concrete dates that were in the late policy to begin with), storing in another list
 -> store all the shit in the dlsubs table (assignment_name, template_dl, concrete_dl)
 -> end of insert_assignment() (we don't want to couple the deadlines to the offsets until prindex generation, because the deadlines can change)
 -> enter compute_prindex()
--> join dlsubs with late_phases on template_dl and assignment_name
+-> join dlsubs with lp_template_phases on template_dl and assignment_name
 -> parse concrete_dl and add with parsed hour_offset (timedelta) to form a new column
--> divide late_phases' pct_value by the difference between the new column and now to make a new column
+-> divide lp_template_phases' pct_value by the difference between the new column and now to make a new column
 -> and ONLY NOW can you sum 
 
-parser.parse(arr[deadline]) + datetime.timedelta(hours = arr[hour_offset])
+final_deadline = parser.parse(arr[deadline]) + datetime.timedelta(hours = arr[hour_offset])
+
+CREATE TABLE deadvar_maps IF NOT EXISTS (assignment_name TEXT, deadline_variable TEXT, deadline_instance TEXT NOT NULL, PRIMARY KEY (assignment_name, deadline_variable));
+
+SELECT DISTINCT lp_template_phases.deadline_variable 
+FROM assignments
+INNER JOIN lp_template_phases ON assignments.late_policy = lp_template_phases.late_policy_name
+WHERE assignments.assignment_name = [input_name]
+
+*iterate through retreived list, asking for user to input deadline_instance for each distinct deadline_variable, forming an entry list that is then insert into deadvar_maps (classic)*
+
+CREATE VIEW p_parts AS
+SELECT assignments.assignment_name, CAST(DECIMAL(lp_template_phases.pct_value / (CAST(24*60*(julianday(datetime(deadvar_maps.deadline_instance, '+' || lp_template_phases.hour_offset || ' hours')) - julianday('now', 'localtime')) AS INTEGER))) AS REAL) AS p_summand
+WHERE 0 < p_summand AND p_summand <= pct_value
+FROM deadvar_maps 
+INNER JOIN lp_template_phases ON lp_template_phases.assignment_name = deadvar_maps.assignment_name AND lp_template_phases.deadline = deadvar_maps.deadline_variable
+    - maybe add localtime as tail-end param to datetime
+    - the outer cast is necessary because sqlite can't compare DECIMAL to ints or floats (as we do in the WHERE clause), for some reason
+
+DELETE FROM assignments
+WHERE NOT EXISTS (SELECT * FROM p_parts WHERE p_parts.assignment_name = assignments.assignment_name)
+
+SELECT assignment_name, DECIMAL(major_maps.major_factor*COALESCE(assignments.pct_value, assignment_templates.pct_template)*(1.0/classes.total_points)*(SUM(p_parts.p_summand))) as prindex, DECIMAL(assignments.commute_factor*prindex) as c-prindex
+FROM p_parts
+INNER JOIN assignments ON assignments.assignment_name = p_parts.assignment_name
+LEFT JOIN assignment_templates ON assignment_templates.template_name = assignments.template
+INNER JOIN classes ON classes.class_name = COALESCE(assignments.class_name, templates.class_name)
+INNER JOIN major_maps ON major_maps.class_state = classes.class_state
+GROUP BY assignments.assignment_name
+ORDER BY prindex DESC;
+
+and then print all over the place with pandas
+
+the thing with casting the difference to INTEGER is that you have to account for division by 0 (which could essentially be avoided if you just don't do the cast)
+
+major_maps table
+
+foreign key deadline variable?
+init classes, late policies, assignment templates in init.sql? (or special sql file)
+
+hwopt insert is 4 if u want to manually compute as little as possible...otherwise just sql it why not
+
+populate db thru hwopt.py, and then dump as spring2024.sql for quick backup
 """

@@ -88,7 +88,7 @@ def insert_late_policy():
     for i in range(len(entry_list)):
         print(f"Inserting {entry_list[i]}...")
         # could have used c.executemany() for this, btw
-        store("late_phases", entry_list[i])
+        store("lp_template_phases", entry_list[i])
     print("Done!")
 
 
