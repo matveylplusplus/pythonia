@@ -101,25 +101,30 @@ def insert_late_policy():
     store("lp_template_deadvar_phases", phase_list)
 
 
-def translate_to_null(input_str: str) -> str:
-    return "NULL" if input_str == "n/a" else input_str
+def null_translate(input_str: str):
+    return None if input_str == "n/a" else input_str
 
 
-def rational_parse(input_num: str) -> str:
-    split_frac = input_num.split("/")
-    if len(split_frac) == 2:
-        return str(Decimal(int(split_frac[0])) / Decimal(int(split_frac[1])))
+def point_parse(input_num: str):
+    if input_num == None:
+        return input_num
     else:
-        return str(Decimal(input_num))
+        split_frac = input_num.split("/")
+        if len(split_frac) == 2:
+            return str(
+                Decimal(int(split_frac[0])) / Decimal(int(split_frac[1]))
+            )
+        else:
+            return str(Decimal(input_num))
 
 
 def insert_assignment_template():
     print("\nProvide the following information (or hit Ctrl+C to exit)...")
     format_str = " - "
     assignment_type = input(f"{format_str}assignment type: ")
-    class_name = input(f"{format_str}class name: ")
-    points = rational_parse(input(f"{format_str}points: "))
-    late_policy = input(f"{format_str}late policy: ")
+    class_name = null_translate(input(f"{format_str}class name: "))
+    points = point_parse(null_translate(input(f"{format_str}points: ")))
+    late_policy = null_translate(input(f"{format_str}late policy: "))
 
     store(
         "assignment_templates",
