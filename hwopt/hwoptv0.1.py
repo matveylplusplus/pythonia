@@ -1,20 +1,18 @@
 """
 To do ASAP:
     - insert()
-        - insert_class()
-        - insert_late_policy()
+        - insert_class() X
+        - insert_late_policy() X
         - insert_template()
         - insert_assignment()
-            - clean_deadlines()
-            - place results in temp table, which user can then sort by prindex or c-prindex
-        - drop_assignment()
+    - drop_assignment()
     - compute_prindex()
+    - clean_deadlines()
     - update_assignment()
         - update_points()
         - update_deadlines()
-    - drop_assignment()
 
-Features for the future, possibly:
+Future Work:
     - Updating templates updates all users of that template, at least for points (late policies would require the user to enter extra deadlines if the # of independent deadlines in the late policy increases, which might be too complicated and useless to be worth implementing)
     - Accounting for drops 
     - Accounting for extra credit
@@ -25,7 +23,13 @@ Features for the future, possibly:
     - drop_class()
     - drop_template()
     - update_major_factor()
+    - rename_lp_template()
     - normalize database and/or other database design improvements
+    - why the fuck are the floating point values in .dump slightly off at the end, even though 0.05, 0.9, 0.85, etc. are the numbers getting inserted? I tested this in a separate database and got the same result, so it has nothing to do with hwopt.py or anything like that. Literally if you enter INSERT INTO testdb VALUES (DECIMAL(0.05)) the .dump file will show you as having entered 0.050000000000000002775...same with INSERT INTO testdb VALUES (0.05).
+    - insert_late_policy() could...uhh..be refactored
+        - instead of opening and closing the database connection 3 times (by calling store() 3 times), could we generalize store() to allow us to open the connection just once, insert everything we need into all 3 tables, and then close the connection?
+        - the code is hard to read
+        - cohesion could be improved, as processing of input is mish-mashed with providing the input itself...although certainly not out of a lack of trying; the input the user gives directly determines what input we should ask for, so we can't just split it into input() and process()
 """
 
 import pandas as pd
@@ -977,4 +981,7 @@ init classes, late policies, assignment templates in init.sql? (or special sql f
 hwopt insert is 4 if u want to manually compute as little as possible...otherwise just sql it why not
 
 populate db thru hwopt.py, and then dump as spring2024.sql for quick backup
+
+two options for point_insert()...either ask for value and quantity separately and then compute value/quantity or let user input a fraction and then parse fraction
+    - problem with asking for quantity is that it might not even be relevant...if syllabus gives you the worth of each lab assignment (eg 100pts) and user wants a lab_assignment_template they should be able to just enter 100
 """

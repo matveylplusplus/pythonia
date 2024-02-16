@@ -3,46 +3,50 @@ from decimal import Decimal
 from dateutil import parser
 
 
-def store(table_name: str, entry_tuple_list: tuple[str]):
+def connect_to_db() -> sqlite3.Connection:
     conn = sqlite3.connect(f"hwopt.db")
+    conn.execute("PRAGMA foreign_keys = ON")
+    return conn
+
+
+def store(table_name: str, entry_tuple_list: list[tuple[str]]):
+    conn = connect_to_db()
     # makes assumption that that all members of entry_tuple_list have exactly as many elements as entry_tuple_list[0] does...
     qstring = ("?," * (len(entry_tuple_list[0]) - 1)) + "?"
     with conn:
         c = conn.cursor()
+        print("Inserting shit...")
         c.executemany(
-            f"INSERT INTO {table_name} VALUES ({qstring})", entry_tuple_list
+            f"INSERT OR IGNORE INTO {table_name} VALUES ({qstring})",
+            entry_tuple_list,
         )
+        # OR IGNORE makes sure that we don't crash if user enters an entry that duplicates another entry's primary key (sqlite just doesn't enter it)
     conn.close()
+    print("Done!")
+
+
+# simpsing = simple + single
+def get_simpsing_input(question_list: list[str]) -> tuple[str]:
+    answer_list = []
+
+    print("\nProvide the following information (or hit Ctrl+C to exit)...")
+    for i in range(len(question_list)):
+        inp = input(f" - {question_list[i]}: ")
+        answer_list.append(inp)
+
+    return tuple(answer_list)
 
 
 def insert_class():
-    # gened_penalty = 5 / 8
-    input_list = ["class name", "major or gened (m/g)", "total points"]
-    entry = []
-    go = 0
-    i = 0
-
-    print("\nProvide the following information (or hit Ctrl+C to exit)...")
-    while i < len(input_list):
-        inp = input(f" - {input_list[i]}: ")
-        if inp == "q":
-            break
-        else:
-            print("lol")
-            entry.append(inp)
-            i += 1
-
-    # attr_list[1] = 1 if attr_list[1] == "T" else gened_penalty
-    if i == (len(input_list)):
-        entry = tuple(entry)
-        print(f"Inserting shit...")
-        store("classes", [entry])
-        print("Done!")
+    question_list = ["class name", "major or gened (m/g)", "total points"]
+    entry = get_simpsing_input(question_list)
+    store("classes", [entry])
 
 
 def insert_late_policy():
     # init
-    entry_list = []
+    phase_list = []
+    deadvar_list = []
     deadline_count_pairs = []
     prev_deduct = Decimal(0)
 
@@ -51,23 +55,24 @@ def insert_late_policy():
     policy_name = input(" - policy name: ")
     independent_deadlines_count = int(input(" - # of independent deadlines: "))
     for i in range(independent_deadlines_count):
-        deadline = input(f"   - deadline {i+1}: ")
+        deadvar = input(f"   - deadline variable {i+1}: ")
         try:
             # if you're giving a concrete date, let the parser interpret it and paste it in a nice format
-            deadline = str(parser.parse(deadline))
+            deadvar = str(parser.parse(deadvar))
         except parser.ParserError:
-            # if it's not a concrete date, then I assume that it's a valid date variable...might be bad but idk
+            # if it's not a concrete date, then I assume that it's a valid deadline variable...might be bad
             pass
+        deadvar_list.append((policy_name, deadvar))
         deadline_count = int(
-            input(f"   - # of phases dependent on deadline {i+1}: ")
+            input(f"   - # of phases dependent on {deadvar}: ")
         )
-        deadline_count_pairs.append((deadline, deadline_count))
+        deadline_count_pairs.append((deadvar, deadline_count))
     for i in range(len(deadline_count_pairs)):
         # for formatting
         if i != 1 and deadline_count_pairs[i][1] > 1:
             print(f" - {deadline_count_pairs[i][0]} -")
         for j in range(deadline_count_pairs[i][1]):
-            deduct = 1
+            deduct = Decimal(1)
             hour_offset = 0
             if j != 0:
                 hour_offset = int(input(f"   - hour offset {j}: "))
@@ -75,9 +80,13 @@ def insert_late_policy():
                 i != len(deadline_count_pairs) - 1
                 or j != deadline_count_pairs[i][1] - 1
             ):
-                deduct = Decimal(input(f"   - pct deduction {j+1}: ")) / 100
+                deduct = Decimal(
+                    input(f"   - pct deduction {j+1} (from original grade): ")
+                ) / Decimal(100)
+                # print(f"deduct is {str(deduct)}")
+                # print(f"difference is {str(deduct - prev_deduct)}")
 
-            entry_list.append(
+            phase_list.append(
                 (
                     policy_name,
                     str(deduct - prev_deduct),
@@ -87,13 +96,35 @@ def insert_late_policy():
             )
             prev_deduct = deduct
 
-    print(f"Inserting shit...")
-    store("lp_template_phases", entry_list)
-    print("Done!")
+    store("lp_templates", [(policy_name,)])  # <- comma is necessary!!
+    store("lp_template_deadvars", deadvar_list)
+    store("lp_template_deadvar_phases", phase_list)
+
+
+def translate_to_null(input_str: str) -> str:
+    return "NULL" if input_str == "n/a" else input_str
+
+
+def rational_parse(input_num: str) -> str:
+    split_frac = input_num.split("/")
+    if len(split_frac) == 2:
+        return str(Decimal(int(split_frac[0])) / Decimal(int(split_frac[1])))
+    else:
+        return str(Decimal(input_num))
 
 
 def insert_assignment_template():
-    pass
+    print("\nProvide the following information (or hit Ctrl+C to exit)...")
+    format_str = " - "
+    assignment_type = input(f"{format_str}assignment type: ")
+    class_name = input(f"{format_str}class name: ")
+    points = rational_parse(input(f"{format_str}points: "))
+    late_policy = input(f"{format_str}late policy: ")
+
+    store(
+        "assignment_templates",
+        [(assignment_type, class_name, points, late_policy)],
+    )
 
 
 def insert_assignment():

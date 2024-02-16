@@ -33,12 +33,12 @@ CREATE TABLE IF NOT EXISTS lp_template_deadvar_phases (
     PRIMARY KEY (late_policy_name, deadline_variable, hour_offset)
 );
 CREATE TABLE IF NOT EXISTS assignment_templates (
-    template_name TEXT PRIMARY KEY,
+    assignment_type TEXT,
     class_name TEXT,
     points REAL,
     late_policy_name TEXT,
     FOREIGN KEY (class_name) REFERENCES classes (class_name) ON UPDATE CASCADE,
-    FOREIGN KEY (late_policy_name) REFERENCES lp_templates (late_policy_name) ON UPDATE CASCADE
+    FOREIGN KEY (late_policy_name) REFERENCES lp_templates (late_policy_name) ON UPDATE CASCADE PRIMARY KEY (assignment_type, class_name)
 );
 CREATE TABLE IF NOT EXISTS assignments (
     assignment_name TEXT PRIMARY KEY,
@@ -61,6 +61,7 @@ CREATE TABLE IF NOT EXISTS deadvar_maps (
         deadline_variable
     )
 );
-INSERT INTO major_maps
+INSERT
+    OR IGNORE INTO major_maps
 VALUES ('g', DECIMAL(5.0 / 8)),
     ('m', 1.0);
