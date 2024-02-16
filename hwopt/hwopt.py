@@ -3,12 +3,15 @@ from decimal import Decimal
 from dateutil import parser
 
 
-def store(table_name: str, entry_tuple: tuple[str]):
-    conn = sqlite3.connect(f"hwoptdb.db")
-    qstring = ("?," * (len(entry_tuple) - 1)) + "?"
+def store(table_name: str, entry_tuple_list: tuple[str]):
+    conn = sqlite3.connect(f"hwopt.db")
+    # makes assumption that that all members of entry_tuple_list have exactly as many elements as entry_tuple_list[0] does...
+    qstring = ("?," * (len(entry_tuple_list[0]) - 1)) + "?"
     with conn:
         c = conn.cursor()
-        c.execute(f"INSERT INTO {table_name} VALUES ({qstring})", entry_tuple)
+        c.executemany(
+            f"INSERT INTO {table_name} VALUES ({qstring})", entry_tuple_list
+        )
     conn.close()
 
 
@@ -25,15 +28,15 @@ def insert_class():
         if inp == "q":
             break
         else:
+            print("lol")
             entry.append(inp)
             i += 1
-            go = 1 if i == (len(input_list) - 1) else 0
 
     # attr_list[1] = 1 if attr_list[1] == "T" else gened_penalty
-    if go == 1:
+    if i == (len(input_list)):
         entry = tuple(entry)
-        print(f"Inserting {entry}...")
-        store("classes", entry)
+        print(f"Inserting shit...")
+        store("classes", [entry])
         print("Done!")
 
 
@@ -84,11 +87,8 @@ def insert_late_policy():
             )
             prev_deduct = deduct
 
-    # storing in table
-    for i in range(len(entry_list)):
-        print(f"Inserting {entry_list[i]}...")
-        # could have used c.executemany() for this, btw
-        store("lp_template_phases", entry_list[i])
+    print(f"Inserting shit...")
+    store("lp_template_phases", entry_list)
     print("Done!")
 
 
