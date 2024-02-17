@@ -159,11 +159,19 @@ def insert_assignment():
         inp = input(f"{format_str}{loop_input_list[i]}{post_str}: ")
         processed_inp = null_sieve(inp)
         if i == 0:
-            processed_inp = int(processed_inp)
+            processed_inp = (
+                int(processed_inp)
+                if processed_inp is not None
+                else processed_inp
+            )
         elif i == 1:
             lp_checklist.appendleft(processed_inp)
         elif i == 2:
-            processed_inp = str(Decimal(processed_inp))
+            processed_inp = (
+                str(Decimal(processed_inp))
+                if processed_inp is not None
+                else processed_inp
+            )
         plc.append(processed_inp)
 
     with conn:
@@ -250,9 +258,9 @@ def generate_prindex_table():
             DELETE FROM assignments WHERE NOT EXISTS (SELECT * FROM p_parts WHERE p_parts.assignment_name = assignments.assignment_name);
 
             CREATE TEMP TABLE prindexes AS
-            SELECT assignment_name, prindex, commute_factor*prindex AS cprindex
+            SELECT class_name, assignment_name, prindex, commute_factor*prindex AS cprindex
             FROM (
-                SELECT assignments.assignment_name, major_maps.major_factor*COALESCE(assignments.points, assignment_templates.points)*(1.0/classes.total_class_points)*(SUM(p_parts.p_summand))*100.0 as prindex, COALESCE(assignments.commute_factor, assignment_templates.commute_factor) AS commute_factor
+                SELECT assignments.assignment_name, assignments.class_name, major_maps.major_factor*COALESCE(assignments.points, assignment_templates.points)*(1.0/classes.total_class_points)*(SUM(p_parts.p_summand))*100000.0 as prindex, COALESCE(assignments.commute_factor, assignment_templates.commute_factor) AS commute_factor
                 FROM p_parts
                 INNER JOIN assignments ON assignments.assignment_name = p_parts.assignment_name
                 LEFT JOIN assignment_templates ON assignment_templates.assignment_type = assignments.template AND assignment_templates.class_name = assignments.class_name
@@ -270,17 +278,21 @@ def generate_prindex_table():
             print(" - (Ctrl+C) gtfoo")
             sort = input()
             if sort == "1":
+                print("\n-----------------------------------------------------")
                 print(
                     pd.read_sql_query(
                         "SELECT * FROM prindexes ORDER BY prindex DESC", conn
                     ).to_string(index=False)
                 )
+                print("-----------------------------------------------------")
             elif sort == "2":
+                print("\n-----------------------------------------------------")
                 print(
                     pd.read_sql_query(
                         "SELECT * FROM prindexes ORDER BY cprindex DESC", conn
                     ).to_string(index=False)
                 )
+                print("-----------------------------------------------------")
 
     except KeyboardInterrupt:
         conn.close()

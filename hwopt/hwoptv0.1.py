@@ -6,8 +6,8 @@ To do ASAP:
         - insert_template() X
         - insert_assignment() X
     - drop_assignment()
-    - compute_prindex()
-    - clean_deadlines()
+    - compute_prindex() X
+        - clean deadlines X
     - update_assignment()
         - update_points()
         - update_deadlines()
