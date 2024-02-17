@@ -1,7 +1,0 @@
-name: hwopt
-channels:
-  - defaults
-dependencies:
-  - python
-  - pandas
-prefix: C:\Users\matth\miniconda3\envs\hwopt
