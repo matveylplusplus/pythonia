@@ -37,6 +37,10 @@ CREATE TABLE IF NOT EXISTS assignment_templates (
     class_name TEXT,
     points REAL,
     late_policy_name TEXT,
+    commute_factor REAL CHECK (
+        0 < commute_factor
+        AND commute_factor <= 1
+    ),
     FOREIGN KEY (class_name) REFERENCES classes (class_name) ON UPDATE CASCADE,
     FOREIGN KEY (late_policy_name) REFERENCES lp_templates (late_policy_name) ON UPDATE CASCADE,
     PRIMARY KEY (assignment_type, class_name)
@@ -54,18 +58,13 @@ CREATE TABLE IF NOT EXISTS assignments (
 );
 CREATE TABLE IF NOT EXISTS deadvar_maps (
     assignment_name TEXT,
-    late_policy_name TEXT,
+    class_name TEXT,
     deadline_variable TEXT,
     deadline_instance TEXT NOT NULL,
-    FOREIGN KEY (assignment_name) REFERENCES assignments (assignment_name) ON UPDATE CASCADE,
-    FOREIGN KEY (late_policy_name, deadline_variable) REFERENCES lp_template_deadvars (late_policy_name, deadline_variable) ON UPDATE CASCADE,
+    FOREIGN KEY (assignment_name, class_name) REFERENCES assignments (assignment_name, class_name) ON DELETE CASCADE,
     PRIMARY KEY (
         assignment_name,
-        late_policy_name,
+        class_name,
         deadline_variable
     )
 );
-INSERT
-    OR IGNORE INTO major_maps
-VALUES ('g', DECIMAL(5.0 / 8)),
-    ('m', 1.0);

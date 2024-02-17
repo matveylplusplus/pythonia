@@ -4,7 +4,7 @@ To do ASAP:
         - insert_class() X
         - insert_late_policy() X
         - insert_template() X
-        - insert_assignment()
+        - insert_assignment() X
     - drop_assignment()
     - compute_prindex()
     - clean_deadlines()
@@ -951,16 +951,19 @@ WHERE assignments.assignment_name = [input_name]
 
 CREATE VIEW p_parts AS
 SELECT assignments.assignment_name, CAST(DECIMAL(lp_template_deadvar_phases.phase_value / (CAST(24*60*(julianday(datetime(deadvar_maps.deadline_instance, '+' || lp_template_deadvar_phases.hour_offset || ' hours')) - julianday('now', 'localtime')) AS INTEGER))) AS REAL) AS p_summand
-WHERE 0 < p_summand AND p_summand <= phase_value
-FROM deadvar_maps 
-INNER JOIN lp_template_deadvar_phases ON lp_template_deadvar_phases.late_policy_name = deadvar_maps.late_policy AND lp_template_deadvar_phases.deadline_variable = deadvar_maps.deadline_variable
+FROM assignments
+INNER JOIN deadvar_maps ON deadvar_maps.assignment_name = assignments.assignment_name AND deadvar_maps.class_name = assignments.class_name
+LEFT JOIN assignment_templates ON assignment_templates.assignment_type = assignments.template AND assignment_templates.class_name = assignments.class_name
+LEFT JOIN lp_template_deadvar_phases ON lp_template_deadvar_phases.late_policy_name = COALESCE(assignments.late_policy_name, assignment_templates.late_policy_name)
+WHERE 0 < p_summand AND p_summand <= phase_value;
     - maybe add localtime as tail-end param to datetime
     - the outer cast is necessary because sqlite can't compare DECIMAL to ints or floats (as we do in the WHERE clause), for some reason
 
-DELETE FROM assignments
-WHERE NOT EXISTS (SELECT * FROM p_parts WHERE p_parts.assignment_name = assignments.assignment_name)
+DELETE FROM assignments WHERE NOT EXISTS (SELECT * FROM p_parts WHERE p_parts.assignment_name = assignments.assignment_name);
 
-SELECT assignment_name, DECIMAL(major_maps.major_factor*COALESCE(assignments.points, assignment_templates.points)*(1.0/classes.total_points)*(SUM(p_parts.p_summand))) as prindex, DECIMAL(assignments.commute_factor*prindex) as c-prindex
+*the relevant deadvar_maps entry should alt-f4 itself by cascade*
+
+SELECT assignments.assignment_name, DECIMAL(major_maps.major_factor*COALESCE(assignments.points, assignment_templates.points)*(1.0/classes.total_class_points)*(SUM(p_parts.p_summand))) as prindex, DECIMAL(assignments.commute_factor*prindex) as cprindex
 FROM p_parts
 INNER JOIN assignments ON assignments.assignment_name = p_parts.assignment_name
 LEFT JOIN assignment_templates ON assignment_templates.template_name = assignments.template

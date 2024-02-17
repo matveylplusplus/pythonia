@@ -51,6 +51,7 @@ def insert_late_policy():
     prev_deduct = Decimal(0)
 
     # input
+    varcount = 0
     print("\nProvide the following information (or hit Ctrl+C to exit)...")
     policy_name = input(" - policy name: ")
     independent_deadlines_count = int(input(" - # of independent deadlines: "))
@@ -60,8 +61,9 @@ def insert_late_policy():
             # if you're giving a concrete date, let the parser interpret it and paste it in a nice format
             deadvar = str(parser.parse(deadvar))
         except parser.ParserError:
-            # if it's not a concrete date, then I assume that it's a valid deadline variable...might be bad
-            pass
+            # if user does not provide a concrete date, then their input is taken to be a variable
+            deadvar = f"x{varcount}"
+            varcount += 1
         deadvar_list.append((policy_name, deadvar))
         deadline_count = int(
             input(f"   - # of phases dependent on {deadvar}: ")
@@ -161,7 +163,7 @@ def insert_assignment():
             """
             SELECT DISTINCT deadline_variable 
             FROM lp_template_deadvar_phases
-            WHERE late_policy_name = ?
+            WHERE late_policy_name = ? AND deadline_variable LIKE '%%x%%'
             """,
             (lp_to_search,),
         )
@@ -173,19 +175,17 @@ def insert_assignment():
     for i in range(len(distinct_deadvars)):
         var_to_inspect = distinct_deadvars[i][0]
         deadvar_instance = var_to_inspect
-        if "x" in var_to_inspect:
-            deadvar_instance = str(
-                parser.parse(
-                    input(
-                        f"  {format_str}instance of {distinct_deadvars[i][0]}: "
-                    )
-                )
-            )
+        deadvar_instance = str(
+            parser.parse(input(f"  {format_str}instance of {var_to_inspect}: "))
+        )
         deadvar_map_entries.append(
-            (assignment_name, lp_to_search, var_to_inspect, deadvar_instance)
+            (assignment_name, class_name, var_to_inspect, deadvar_instance)
         )
 
-    store("assignments", [(assignment_name, class_name, points, late_policy)])
+    store(
+        "assignments",
+        [(assignment_name, class_name, points, late_policy, template)],
+    )
     store("deadvar_maps", deadvar_map_entries)
 
 
@@ -223,10 +223,6 @@ def insert_loop():
 
 
 def generate_prindex_table():
-    pass
-
-
-def clean_deadlines():
     pass
 
 
