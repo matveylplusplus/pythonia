@@ -3,7 +3,7 @@ To do ASAP:
     - insert()
         - insert_class() X
         - insert_late_policy() X
-        - insert_template()
+        - insert_template() X
         - insert_assignment()
     - drop_assignment()
     - compute_prindex()
@@ -944,7 +944,7 @@ CREATE TABLE deadvar_maps IF NOT EXISTS (assignment_name TEXT, deadline_variable
 SELECT DISTINCT lp_template_deadvar_phases.deadline_variable 
 FROM assignments
 LEFT JOIN assignment_templates ON assignment_templates.template_name = assignments.template
-INNER JOIN lp_template_deadvar_phases ON COALESCE(assignments.late_policy, assignment_templates.late_policy) = lp_template_deadvar_phases.late_policy_name
+INNER JOIN lp_template_deadvar_phases ON COALESCE(assignments.late_policy_name, assignment_templates.late_policy_name) = lp_template_deadvar_phases.late_policy_name
 WHERE assignments.assignment_name = [input_name]
 
 *iterate through retreived list, asking for user to input deadline_instance for each distinct deadline_variable, forming an entry list that is then insert into deadvar_maps (classic)*

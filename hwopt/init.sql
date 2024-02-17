@@ -38,15 +38,19 @@ CREATE TABLE IF NOT EXISTS assignment_templates (
     points REAL,
     late_policy_name TEXT,
     FOREIGN KEY (class_name) REFERENCES classes (class_name) ON UPDATE CASCADE,
-    FOREIGN KEY (late_policy_name) REFERENCES lp_templates (late_policy_name) ON UPDATE CASCADE PRIMARY KEY (assignment_type, class_name)
+    FOREIGN KEY (late_policy_name) REFERENCES lp_templates (late_policy_name) ON UPDATE CASCADE,
+    PRIMARY KEY (assignment_type, class_name)
 );
 CREATE TABLE IF NOT EXISTS assignments (
-    assignment_name TEXT PRIMARY KEY,
+    assignment_name TEXT,
     class_name TEXT,
     points REAL,
     late_policy_name TEXT,
+    template TEXT,
     FOREIGN KEY (class_name) REFERENCES classes (class_name) ON UPDATE CASCADE,
-    FOREIGN KEY (late_policy_name) REFERENCES lp_templates (late_policy_name) ON UPDATE CASCADE
+    FOREIGN KEY (late_policy_name) REFERENCES lp_templates (late_policy_name) ON UPDATE CASCADE,
+    FOREIGN KEY (template, class_name) REFERENCES assignment_templates (assignment_type, class_name) ON UPDATE CASCADE,
+    PRIMARY KEY (assignment_name, class_name)
 );
 CREATE TABLE IF NOT EXISTS deadvar_maps (
     assignment_name TEXT,

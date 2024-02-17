@@ -101,30 +101,22 @@ def insert_late_policy():
     store("lp_template_deadvar_phases", phase_list)
 
 
-def null_translate(input_str: str):
+def null_sieve(input_str: str):
     return None if input_str == "n/a" else input_str
-
-
-def point_parse(input_num: str):
-    if input_num == None:
-        return input_num
-    else:
-        split_frac = input_num.split("/")
-        if len(split_frac) == 2:
-            return str(
-                Decimal(int(split_frac[0])) / Decimal(int(split_frac[1]))
-            )
-        else:
-            return str(Decimal(input_num))
 
 
 def insert_assignment_template():
     print("\nProvide the following information (or hit Ctrl+C to exit)...")
     format_str = " - "
+
     assignment_type = input(f"{format_str}assignment type: ")
-    class_name = null_translate(input(f"{format_str}class name: "))
-    points = point_parse(null_translate(input(f"{format_str}points: ")))
-    late_policy = null_translate(input(f"{format_str}late policy: "))
+    class_name = input(f"{format_str}class name: ")
+    points = null_sieve(input(f"{format_str}points: "))
+    # parse fractions jic
+    if points is not None and "/" in points:
+        split_frac = points.split("/")
+        points = str(Decimal(int(split_frac[0])) / Decimal(int(split_frac[1])))
+    late_policy = null_sieve(input(f"{format_str}late policy: "))
 
     store(
         "assignment_templates",
@@ -133,7 +125,68 @@ def insert_assignment_template():
 
 
 def insert_assignment():
-    pass
+    print("\nProvide the following information (or hit Ctrl+C to exit)...")
+    format_str = " - "
+    conn = connect_to_db()
+
+    assignment_name = input(f"{format_str}assignment name: ")
+    class_name = input(f"{format_str}class name: ")
+    template = null_sieve(input(f"{format_str}template: "))
+    points = None
+    late_policy = None
+
+    if template is None:
+        points = int(input(f"{format_str}points: "))
+        late_policy = input(f"{format_str}late policy: ")
+        lp_to_search = late_policy
+    else:
+        with conn:
+            c = conn.cursor()
+            c.execute(
+                "SELECT points, late_policy_name FROM assignment_templates WHERE assignment_type = ? AND class_name = ?",
+                (template, class_name),
+            )
+            template_excerpt = c.fetchone()
+        if template_excerpt[0] is None:
+            points = int(input(f"{format_str}points: "))
+        if template_excerpt[1] is None:
+            late_policy = input(f"{format_str}late policy: ")
+            lp_to_search = late_policy
+        else:
+            lp_to_search = template_excerpt[1]
+
+    with conn:
+        c = conn.cursor()
+        c.execute(
+            """
+            SELECT DISTINCT deadline_variable 
+            FROM lp_template_deadvar_phases
+            WHERE late_policy_name = ?
+            """,
+            (lp_to_search,),
+        )
+        distinct_deadvars = c.fetchall()
+    conn.close()
+
+    deadvar_map_entries = []
+    print(f"{format_str}deadlines{format_str}")
+    for i in range(len(distinct_deadvars)):
+        var_to_inspect = distinct_deadvars[i][0]
+        deadvar_instance = var_to_inspect
+        if "x" in var_to_inspect:
+            deadvar_instance = str(
+                parser.parse(
+                    input(
+                        f"  {format_str}instance of {distinct_deadvars[i][0]}: "
+                    )
+                )
+            )
+        deadvar_map_entries.append(
+            (assignment_name, lp_to_search, var_to_inspect, deadvar_instance)
+        )
+
+    store("assignments", [(assignment_name, class_name, points, late_policy)])
+    store("deadvar_maps", deadvar_map_entries)
 
 
 def get_insert_input() -> str:
