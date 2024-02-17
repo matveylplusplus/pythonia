@@ -949,7 +949,7 @@ WHERE assignments.assignment_name = [input_name]
 
 *iterate through retreived list, asking for user to input deadline_instance for each distinct deadline_variable, forming an entry list that is then insert into deadvar_maps (classic)*
 
-CREATE VIEW p_parts AS
+CREATE TEMP TABLE p_parts AS
 SELECT assignments.assignment_name, CAST(DECIMAL(lp_template_deadvar_phases.phase_value / (CAST(24*60*(julianday(datetime(deadvar_maps.deadline_instance, '+' || lp_template_deadvar_phases.hour_offset || ' hours')) - julianday('now', 'localtime')) AS INTEGER))) AS REAL) AS p_summand
 FROM assignments
 INNER JOIN deadvar_maps ON deadvar_maps.assignment_name = assignments.assignment_name AND deadvar_maps.class_name = assignments.class_name
@@ -963,14 +963,23 @@ DELETE FROM assignments WHERE NOT EXISTS (SELECT * FROM p_parts WHERE p_parts.as
 
 *the relevant deadvar_maps entry should alt-f4 itself by cascade*
 
-SELECT assignments.assignment_name, DECIMAL(major_maps.major_factor*COALESCE(assignments.points, assignment_templates.points)*(1.0/classes.total_class_points)*(SUM(p_parts.p_summand))) as prindex, DECIMAL(assignments.commute_factor*prindex) as cprindex
-FROM p_parts
-INNER JOIN assignments ON assignments.assignment_name = p_parts.assignment_name
-LEFT JOIN assignment_templates ON assignment_templates.template_name = assignments.template
-INNER JOIN classes ON classes.class_name = COALESCE(assignments.class_name, templates.class_name)
-INNER JOIN major_maps ON major_maps.class_state = classes.class_state
-GROUP BY assignments.assignment_name
+CREATE TEMP TABLE prindexes AS
+SELECT assignment_name, prindex, commute_factor*prindex AS cprindex
+FROM (
+    SELECT assignments.assignment_name, DECIMAL(major_maps.major_factor*COALESCE(assignments.points, assignment_templates.points)*(1.0/classes.total_class_points)*(SUM(p_parts.p_summand)))*100.0 as prindex, DECIMAL(COALESCE(assignments.commute_factor, assignment_templates.commute_factor)) AS commute_factor
+    FROM p_parts
+    INNER JOIN assignments ON assignments.assignment_name = p_parts.assignment_name
+    LEFT JOIN assignment_templates ON assignment_templates.assignment_type = assignments.template AND assignment_templates.class_name = assignments.class_name
+    INNER JOIN classes ON classes.class_name = COALESCE(assignments.class_name, assignment_templates.class_name)
+    INNER JOIN major_maps ON major_maps.major_state = classes.major_state
+    GROUP BY assignments.assignment_name
+    );
+
+SELECT * FROM prindexes
 ORDER BY prindex DESC;
+*or*
+SELECT * FROM prindexes
+ORDER BY cprindex DESC;
 
 and then print all over the place with pandas
 

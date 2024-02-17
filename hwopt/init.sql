@@ -50,6 +50,10 @@ CREATE TABLE IF NOT EXISTS assignments (
     class_name TEXT,
     points REAL,
     late_policy_name TEXT,
+    commute_factor REAL CHECK (
+        0 < commute_factor
+        AND commute_factor <= 1
+    ),
     template TEXT,
     FOREIGN KEY (class_name) REFERENCES classes (class_name) ON UPDATE CASCADE,
     FOREIGN KEY (late_policy_name) REFERENCES lp_templates (late_policy_name) ON UPDATE CASCADE,

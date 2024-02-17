@@ -1,6 +1,8 @@
 import sqlite3
 from decimal import Decimal
 from dateutil import parser
+from collections import deque
+import pandas as pd
 
 
 def connect_to_db() -> sqlite3.Connection:
@@ -111,51 +113,58 @@ def insert_assignment_template():
     print("\nProvide the following information (or hit Ctrl+C to exit)...")
     format_str = " - "
 
-    assignment_type = input(f"{format_str}assignment type: ")
     class_name = input(f"{format_str}class name: ")
+    assignment_type = input(f"{format_str}assignment type: ")
     points = null_sieve(input(f"{format_str}points: "))
     # parse fractions jic
     if points is not None and "/" in points:
         split_frac = points.split("/")
         points = str(Decimal(int(split_frac[0])) / Decimal(int(split_frac[1])))
     late_policy = null_sieve(input(f"{format_str}late policy: "))
+    commute_factor = null_sieve(input(f"{format_str}commute factor: "))
 
     store(
         "assignment_templates",
-        [(assignment_type, class_name, points, late_policy)],
+        [(assignment_type, class_name, points, late_policy, commute_factor)],
     )
 
 
 def insert_assignment():
     print("\nProvide the following information (or hit Ctrl+C to exit)...")
     format_str = " - "
-    conn = connect_to_db()
 
-    assignment_name = input(f"{format_str}assignment name: ")
     class_name = input(f"{format_str}class name: ")
+    assignment_name = input(f"{format_str}assignment name: ")
     template = null_sieve(input(f"{format_str}template: "))
-    points = None
-    late_policy = None
 
-    if template is None:
-        points = int(input(f"{format_str}points: "))
-        late_policy = input(f"{format_str}late policy: ")
-        lp_to_search = late_policy
-    else:
+    conn = connect_to_db()
+    template_excerpt = (None, None, None)
+    if template is not None:
         with conn:
             c = conn.cursor()
             c.execute(
-                "SELECT points, late_policy_name FROM assignment_templates WHERE assignment_type = ? AND class_name = ?",
+                "SELECT points, late_policy_name, commute_factor FROM assignment_templates WHERE assignment_type = ? AND class_name = ?",
                 (template, class_name),
             )
             template_excerpt = c.fetchone()
-        if template_excerpt[0] is None:
-            points = int(input(f"{format_str}points: "))
-        if template_excerpt[1] is None:
-            late_policy = input(f"{format_str}late policy: ")
-            lp_to_search = late_policy
-        else:
-            lp_to_search = template_excerpt[1]
+
+    loop_input_list = ["points", "late policy", "commute factor"]
+    lp_checklist = deque()
+    lp_checklist.append(template_excerpt[1])
+    plc = []
+    for i in range(len(template_excerpt)):
+        post_str = (
+            " (overriding template)" if template_excerpt[i] is not None else ""
+        )
+        inp = input(f"{format_str}{loop_input_list[i]}{post_str}: ")
+        processed_inp = null_sieve(inp)
+        if i == 0:
+            processed_inp = int(processed_inp)
+        elif i == 1:
+            lp_checklist.appendleft(processed_inp)
+        elif i == 2:
+            processed_inp = str(Decimal(processed_inp))
+        plc.append(processed_inp)
 
     with conn:
         c = conn.cursor()
@@ -165,7 +174,7 @@ def insert_assignment():
             FROM lp_template_deadvar_phases
             WHERE late_policy_name = ? AND deadline_variable LIKE '%%x%%'
             """,
-            (lp_to_search,),
+            (next(x for x in lp_checklist if x is not None),),
         )
         distinct_deadvars = c.fetchall()
     conn.close()
@@ -184,7 +193,7 @@ def insert_assignment():
 
     store(
         "assignments",
-        [(assignment_name, class_name, points, late_policy, template)],
+        [(assignment_name, class_name, *plc, template)],
     )
     store("deadvar_maps", deadvar_map_entries)
 
@@ -223,7 +232,58 @@ def insert_loop():
 
 
 def generate_prindex_table():
-    pass
+    conn = connect_to_db()
+    # conn.enable_load_extension(True)
+    # conn.load_extension("")
+    with conn:
+        c = conn.cursor()
+        c.executescript(
+            """
+            CREATE TEMP TABLE p_parts AS
+            SELECT assignments.assignment_name, CAST(lp_template_deadvar_phases.phase_value / (CAST(24*60*(julianday(datetime(deadvar_maps.deadline_instance, '+' || lp_template_deadvar_phases.hour_offset || ' hours')) - julianday('now', 'localtime')) AS INTEGER)) AS REAL) AS p_summand
+            FROM assignments
+            INNER JOIN deadvar_maps ON deadvar_maps.assignment_name = assignments.assignment_name AND deadvar_maps.class_name = assignments.class_name
+            LEFT JOIN assignment_templates ON assignment_templates.assignment_type = assignments.template AND assignment_templates.class_name = assignments.class_name
+            LEFT JOIN lp_template_deadvar_phases ON lp_template_deadvar_phases.late_policy_name = COALESCE(assignments.late_policy_name, assignment_templates.late_policy_name)
+            WHERE 0 < p_summand AND p_summand <= phase_value;
+
+            DELETE FROM assignments WHERE NOT EXISTS (SELECT * FROM p_parts WHERE p_parts.assignment_name = assignments.assignment_name);
+
+            CREATE TEMP TABLE prindexes AS
+            SELECT assignment_name, prindex, commute_factor*prindex AS cprindex
+            FROM (
+                SELECT assignments.assignment_name, major_maps.major_factor*COALESCE(assignments.points, assignment_templates.points)*(1.0/classes.total_class_points)*(SUM(p_parts.p_summand))*100.0 as prindex, COALESCE(assignments.commute_factor, assignment_templates.commute_factor) AS commute_factor
+                FROM p_parts
+                INNER JOIN assignments ON assignments.assignment_name = p_parts.assignment_name
+                LEFT JOIN assignment_templates ON assignment_templates.assignment_type = assignments.template AND assignment_templates.class_name = assignments.class_name
+                INNER JOIN classes ON classes.class_name = COALESCE(assignments.class_name, assignment_templates.class_name)
+                INNER JOIN major_maps ON major_maps.major_state = classes.major_state
+                GROUP BY assignments.assignment_name
+                );
+        """
+        )
+    try:
+        while True:
+            print("\nWould you like to:")
+            print(" - (1) Sort by prindex")
+            print(" - (2) Sort by c-prindex")
+            print(" - (Ctrl+C) gtfoo")
+            sort = input()
+            if sort == "1":
+                print(
+                    pd.read_sql_query(
+                        "SELECT * FROM prindexes ORDER BY prindex DESC", conn
+                    ).to_string(index=False)
+                )
+            elif sort == "2":
+                print(
+                    pd.read_sql_query(
+                        "SELECT * FROM prindexes ORDER BY cprindex DESC", conn
+                    ).to_string(index=False)
+                )
+
+    except KeyboardInterrupt:
+        conn.close()
 
 
 def get_menu_input() -> str:
